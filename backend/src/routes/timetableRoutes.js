@@ -1,24 +1,45 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const Timetable = require('../models/Timetable');
 const Meal = require('../models/Meal');
+const Subscription = require('../models/Subscription');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const { month, year } = req.query;
+  const today = new Date();
+  const month = Number(req.query.month) || today.getMonth() + 1;
+  const year = Number(req.query.year) || today.getFullYear();
 
   try {
-    const filter = {};
-    if (month) filter.month = Number(month);
-    if (year) filter.year = Number(year);
+    let subscriber = false;
+    const authorization = req.headers.authorization;
+
+    if (authorization?.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authorization.slice(7), process.env.JWT_SECRET || 'bachelor-kitchen-secret');
+        const user = await User.findById(decoded.id).select('role');
+        subscriber = user?.role === 'admin' || Boolean(await Subscription.exists({
+          user: decoded.id,
+          status: 'active',
+          endDate: { $gte: new Date() }
+        }));
+      } catch {
+        return res.status(401).json({ success: false, message: 'Token is invalid or expired' });
+      }
+    }
+
+    const filter = { month, year, published: true };
+    if (!subscriber) filter.date = { $lte: new Date(year, month - 1, 14, 23, 59, 59, 999) };
 
     const entries = await Timetable.find(filter)
-      .populate({ path: 'meal', populate: { path: 'category' } })
+      .populate({ path: 'meal', select: 'title image category preparationTime difficulty estimatedCost isExotic', populate: { path: 'category', select: 'name' } })
       .sort({ date: 1 });
 
-    res.json({ success: true, entries });
+    res.json({ success: true, entries, access: subscriber ? 'full-month' : 'first-two-weeks' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -13,6 +13,16 @@ const nutritionSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const ingredientLineSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    quantity: { type: Number, default: 1 },
+    unit: { type: String, default: 'portion' },
+    estimatedCost: { type: Number, default: 0 }
+  },
+  { _id: false }
+);
+
 const mealSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -20,8 +30,16 @@ const mealSchema = new mongoose.Schema(
     image: { type: String, default: '' },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     ingredients: [{ type: String }],
+    ingredientLines: [ingredientLineSchema],
     preparationSteps: [{ type: String }],
     preparationTime: { type: String, default: '20 min' },
+    cookingTime: { type: String, default: '' },
+    totalTime: { type: String, default: '' },
+    requiredEquipment: [{ type: String }],
+    commonMistakes: [{ type: String }],
+    substitutions: [{ type: String }],
+    safetyTips: [{ type: String }],
+    isExotic: { type: Boolean, default: false },
     difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
     estimatedCost: { type: Number, default: 0 },
     nutrition: { type: nutritionSchema, default: {} },

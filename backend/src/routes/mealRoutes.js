@@ -9,7 +9,9 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const meals = await Meal.find({ published: true }).populate('category').populate('chef');
+    const meals = await Meal.find({ published: true })
+      .select('title description image category ingredients ingredientLines preparationTime difficulty estimatedCost published isExotic')
+      .populate('category', 'name');
     res.json({ success: true, meals });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -18,7 +20,9 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const meal = await Meal.findById(req.params.id).populate('category').populate('chef');
+    const meal = await Meal.findOne({ _id: req.params.id, published: true })
+      .select('title description image category ingredients ingredientLines preparationTime cookingTime totalTime difficulty estimatedCost preparationSteps requiredEquipment published isExotic')
+      .populate('category', 'name');
     if (!meal) {
       return res.status(404).json({ success: false, message: 'Meal not found' });
     }
@@ -96,10 +100,18 @@ router.get('/:id/subscriber-details', protect, requireSubscriber, async (req, re
         image: meal.image,
         category: meal.category,
         ingredients: meal.ingredients,
+        ingredientLines: meal.ingredientLines,
         preparationSteps: meal.preparationSteps,
         preparationTime: meal.preparationTime,
+        cookingTime: meal.cookingTime,
+        totalTime: meal.totalTime,
         difficulty: meal.difficulty,
         estimatedCost: meal.estimatedCost,
+        ingredientLines: meal.ingredientLines,
+        requiredEquipment: meal.requiredEquipment,
+        commonMistakes: meal.commonMistakes,
+        substitutions: meal.substitutions,
+        safetyTips: meal.safetyTips,
         nutrition: meal.nutrition,
         servings: meal.servings,
         storageInstructions: meal.storageInstructions,

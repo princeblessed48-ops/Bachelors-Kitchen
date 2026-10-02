@@ -5,6 +5,7 @@ const Timetable = require('../models/Timetable');
 const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const DirectionRequest = require('../models/DirectionRequest');
+const IngredientPrice = require('../models/IngredientPrice');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -61,6 +62,38 @@ router.get('/timetable', async (req, res) => {
 router.get('/payments', async (req, res) => {
   const payments = await Payment.find({}).populate('user');
   res.json({ success: true, payments });
+});
+
+router.get('/ingredient-prices', async (req, res) => {
+  const prices = await IngredientPrice.find({ active: true }).sort({ name: 1, effectiveDate: -1 });
+  res.json({ success: true, prices });
+});
+
+router.post('/ingredient-prices', async (req, res) => {
+  try {
+    const price = await IngredientPrice.create({
+      name: req.body.name,
+      unit: req.body.unit,
+      quantity: req.body.quantity,
+      price: req.body.price,
+      location: req.body.location,
+      market: req.body.market,
+      effectiveDate: req.body.effectiveDate || new Date()
+    });
+    res.status(201).json({ success: true, price });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.patch('/ingredient-prices/:id', async (req, res) => {
+  try {
+    const price = await IngredientPrice.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!price) return res.status(404).json({ success: false, message: 'Ingredient price not found' });
+    res.json({ success: true, price });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
 });
 
 module.exports = router;
