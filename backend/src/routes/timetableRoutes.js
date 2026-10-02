@@ -1,48 +1,55 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const Timetable = require('../models/Timetable');
 const Meal = require('../models/Meal');
-const Subscription = require('../models/Subscription');
-const User = require('../models/User');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const resolveScheduleAccess = require('../utils/resolveScheduleAccess');
+const { ensureCurrentSchedule, zonedParts, TIME_ZONE } = require('../services/mealSchedulingService');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  const today = new Date();
-  const month = Number(req.query.month) || today.getMonth() + 1;
-  const year = Number(req.query.year) || today.getFullYear();
-
+const currentMonthResponse = async (req, res) => {
   try {
-    let subscriber = false;
-    const authorization = req.headers.authorization;
-
-    if (authorization?.startsWith('Bearer ')) {
-      try {
-        const decoded = jwt.verify(authorization.slice(7), process.env.JWT_SECRET || 'bachelor-kitchen-secret');
-        const user = await User.findById(decoded.id).select('role');
-        subscriber = user?.role === 'admin' || Boolean(await Subscription.exists({
-          user: decoded.id,
-          status: 'active',
-          endDate: { $gte: new Date() }
-        }));
-      } catch {
-        return res.status(401).json({ success: false, message: 'Token is invalid or expired' });
-      }
-    }
-
-    const filter = { month, year, published: true };
-    if (!subscriber) filter.date = { $lte: new Date(year, month - 1, 14, 23, 59, 59, 999) };
-
-    const entries = await Timetable.find(filter)
-      .populate({ path: 'meal', select: 'title image category preparationTime difficulty estimatedCost isExotic', populate: { path: 'category', select: 'name' } })
-      .sort({ date: 1 });
-
-    res.json({ success: true, entries, access: subscriber ? 'full-month' : 'first-two-weeks' });
+    const access = await resolveScheduleAccess(req);
+    const schedule = await ensureCurrentSchedule();
+    const { year, month } = zonedParts();
+    const entries = (schedule.entries || [])
+      .filter((entry) => access.subscriber || Number(entry.dayNumber || new Date(entry.date).getUTCDate()) <= 14)
+      .map((entry) => ({
+        _id: entry._id,
+        date: entry.date,
+        dateKey: entry.dateKey,
+        dayNumber: entry.dayNumber,
+        meal: entry.meal,
+        category: entry.category,
+        mealSnapshot: entry.mealSnapshot,
+        assignmentSource: entry.assignmentSource,
+        isManuallyModified: entry.isManuallyModified
+      }));
+    res.json({
+      success: true,
+      year,
+      month,
+      timezone: TIME_ZONE,
+      entries,
+      warnings: schedule.warnings || [],
+      access: access.subscriber ? 'full-current-month' : 'first-two-weeks'
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    const status = error.message === 'Token is invalid or expired' ? 401 : error.message === 'User not found' ? 401 : 503;
+    res.status(status).json({ success: false, message: status === 503 ? 'This month’s meal plan is being prepared. Please try again shortly.' : error.message });
   }
+};
+
+router.get('/current', currentMonthResponse);
+router.get('/', currentMonthResponse);
+
+router.get('/month/:year/:month', async (req, res) => {
+  const current = zonedParts();
+  if (Number(req.params.year) !== current.year || Number(req.params.month) !== current.month) {
+    return res.status(404).json({ success: false, message: 'Only the current month is available to members.' });
+  }
+  return currentMonthResponse(req, res);
 });
 
 router.post('/', protect, authorize('admin'), [

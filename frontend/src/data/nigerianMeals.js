@@ -78,23 +78,22 @@ demoMeals.forEach((item) => {
 const exoticByWeek = [19, 20, 19, 20, 19];
 
 export const demoTimetable = (() => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit' }).formatToParts(new Date()).filter((part) => part.type !== 'literal').map((part) => [part.type, Number(part.value)]));
+  const year = parts.year;
+  const month = parts.month - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const weekRotation = [1, 3, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15];
 
   return Array.from({ length: Math.min(daysInMonth, 14) }, (_, dayIndex) => {
-    const date = new Date(year, month, dayIndex + 1);
+    const date = new Date(Date.UTC(year, month, dayIndex + 1, 12));
     const week = Math.floor(dayIndex / 7);
-    const weekday = date.toLocaleDateString('en-NG', { weekday: 'long' });
-    const exotic = date.getDay() === 6;
+    const exotic = date.getUTCDay() === 6;
     const mealId = exotic ? exoticByWeek[week] || 19 : weekRotation[dayIndex % weekRotation.length];
     const selectedMeal = demoMeals.find((item) => item.id === String(mealId));
 
     return {
       id: `${year}-${month + 1}-${dayIndex + 1}`,
-      day: weekday,
+      day: date.toLocaleDateString('en-NG', { weekday: 'long', timeZone: 'Africa/Lagos' }),
       date: `${year}-${String(month + 1).padStart(2, '0')}-${String(dayIndex + 1).padStart(2, '0')}`,
       meal: selectedMeal.title,
       mealId: selectedMeal.id,

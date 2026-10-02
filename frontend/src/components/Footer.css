@@ -1,0 +1,265 @@
+.site-footer {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  min-height: 0;
+  padding: 0;
+  color: #f7f3ea;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.022) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(45deg, rgba(6,30,49,.035) 0 1px, transparent 1px 6px),
+    linear-gradient(125deg, #12344d, #1f4e79 62%, #173f61);
+  border-top: 1px solid rgba(255,255,255,.2);
+  box-shadow: 0 -12px 32px rgba(18,52,77,.1);
+}
+
+.footer-main {
+  display: grid;
+  grid-template-columns: 1.35fr .72fr .95fr 1.25fr;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  width: min(1200px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 3.1rem 0 2.5rem;
+}
+
+.footer-main section,
+.footer-main nav {
+  min-width: 0;
+}
+
+.footer-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: .8rem;
+  color: #fffdf8;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.footer-brand-lockup img {
+  width: 46px;
+  height: 46px;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.2));
+}
+
+.footer-brand-column > p,
+.footer-subscription-column > p {
+  max-width: 34ch;
+  margin: 1rem 0;
+  color: #d8e4eb;
+  font-size: .93rem;
+  line-height: 1.7;
+}
+
+.footer-tagline {
+  display: inline-block;
+  color: #f3bd87;
+  font-size: .85rem;
+}
+
+.footer-main h2 {
+  margin: .2rem 0 1rem;
+  color: #fffdf8;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.footer-nav-column,
+.footer-contact-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .65rem;
+}
+
+.footer-nav-column > a,
+.footer-contact-column > a,
+.footer-location a {
+  color: #dce7ed;
+  font-size: .9rem;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.footer-nav-column > a:hover,
+.footer-contact-column > a:hover,
+.footer-location a:hover {
+  color: #fff;
+  transform: translateX(3px);
+}
+
+.footer-contact-column > a,
+.footer-location {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  overflow-wrap: anywhere;
+}
+
+.footer-contact-column > a > span:first-child,
+.footer-location > span {
+  width: 1.2rem;
+  flex: 0 0 1.2rem;
+  color: #f3bd87;
+  text-align: center;
+}
+
+.footer-location,
+.footer-hours {
+  margin: 0;
+  color: #dce7ed;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.footer-kicker {
+  color: #b9d0df;
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.footer-subscription-column {
+  padding: 1.05rem 1.15rem 1.2rem;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 12px;
+  background: rgba(247,243,234,.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 12px 24px rgba(3,21,35,.13);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.footer-subscription-column h2 {
+  margin: .5rem 0;
+  font-size: 1.08rem;
+}
+
+.footer-subscription-column > p {
+  margin: .65rem 0 1rem;
+  font-size: .85rem;
+}
+
+.footer-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.4rem;
+  min-height: 44px;
+  padding: .7rem .9rem;
+  border: 1px solid rgba(255,255,255,.36);
+  border-radius: 8px;
+  color: #fffdf8;
+  background: #2f6690;
+  box-shadow: 0 4px 0 rgba(6,30,49,.3), inset 0 1px rgba(255,255,255,.17);
+  font-size: .88rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.footer-cta:hover {
+  transform: translateY(-2px);
+  background: #3c79a4;
+  box-shadow: 0 7px 14px rgba(3,21,35,.23), inset 0 1px rgba(255,255,255,.2);
+}
+
+.footer-cta span {
+  transition: transform 180ms ease;
+}
+
+.footer-cta:hover span { transform: translateX(3px); }
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: min(1200px, calc(100% - 3rem));
+  min-height: 58px;
+  margin: 0 auto;
+  border-top: 1px solid rgba(229,239,245,.2);
+  color: #c8d9e4;
+  font-size: .8rem;
+}
+
+.footer-bottom p { margin: 0; }
+.footer-made-for { color: #a9c1d1; }
+
+.back-to-top {
+  position: fixed;
+  right: max(1.15rem, calc((100vw - 1280px) / 2));
+  bottom: 1.15rem;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 50%;
+  color: #fffdf8;
+  background: rgba(31,78,121,.92);
+  box-shadow: 0 8px 22px rgba(18,52,77,.28), inset 0 1px rgba(255,255,255,.2);
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.back-to-top span { font-size: 1.45rem; line-height: 1; }
+.back-to-top:hover { transform: translateY(-3px); background: #2f6690; }
+.back-to-top:active { transform: translateY(0) scale(.96); }
+
+.site-footer a:focus-visible,
+.back-to-top:focus-visible {
+  outline: 3px solid #f3bd87;
+  outline-offset: 3px;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .footer-subscription-column { background: #1b4568; }
+}
+
+@media (max-width: 960px) {
+  .footer-main {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+  .footer-subscription-column { grid-column: 1 / -1; }
+}
+
+@media (max-width: 620px) {
+  .footer-main {
+    grid-template-columns: 1fr 1fr;
+    width: min(100% - 2rem, 520px);
+    gap: 1.7rem 1.1rem;
+    padding: 2.2rem 0 1.8rem;
+  }
+  .footer-brand-column,
+  .footer-subscription-column { grid-column: 1 / -1; }
+  .footer-nav-column,
+  .footer-contact-column { gap: .7rem; }
+  .footer-nav-column > a,
+  .footer-contact-column > a { min-height: 34px; align-items: center; }
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    width: min(100% - 2rem, 520px);
+    padding: .85rem 0;
+  }
+  .back-to-top { right: .85rem; bottom: .85rem; }
+}
+
+@media (max-width: 380px) {
+  .footer-main { grid-template-columns: 1fr; }
+  .footer-brand-column,
+  .footer-subscription-column { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-footer *, .site-footer *::before, .site-footer *::after,
+  .back-to-top, .back-to-top * {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

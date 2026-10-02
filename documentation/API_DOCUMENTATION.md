@@ -19,12 +19,12 @@ Public meal list/detail responses omit nutrition, servings, storage/reheating da
 
 ## Timetable
 
-- GET /api/timetable
-- POST /api/timetable
-- PUT /api/timetable/:id
-- DELETE /api/timetable/:id
+- GET /api/timetable/current
+- GET /api/timetable/month/:year/:month (current month only for members)
 
-Unauthenticated timetable requests return only the first 14 dates of the selected month. Subscribers and admins with a valid JWT receive the full published month.
+Unauthenticated timetable requests return only the first 14 dates of the current month in `APP_TIME_ZONE` (defaults to `Africa/Lagos`). Subscribers and admins with a valid JWT receive the full current month. Regular users cannot request future months.
+
+Admin annual and monthly planning endpoints are documented in [Annual Scheduling](ANNUAL_SCHEDULING.md).
 
 ## Subscriptions
 

@@ -6,8 +6,10 @@ const connectDB = async () => {
   try {
     await mongoose.connect(mongoUri);
     console.log('MongoDB connected');
+    return true;
   } catch (error) {
     console.warn('MongoDB connection failed; continuing in demo mode:', error.message);
+    return false;
   }
 };
 

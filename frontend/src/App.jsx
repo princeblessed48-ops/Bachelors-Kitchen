@@ -3,11 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import api from './api';
 import { demoMeals, demoPlans, demoTimetable } from './data/nigerianMeals';
+import Footer from './components/Footer';
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount || 0);
 
 const getCategoryName = (category) => typeof category === 'string' ? category : category?.name || 'Nigerian meals';
+const dateKeyForClient = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+const INITIAL_LAGOS_PARTS = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).filter((part) => part.type !== 'literal').map((part) => [part.type, Number(part.value)]));
+const INITIAL_LOCAL_DATE = new Date(INITIAL_LAGOS_PARTS.year, INITIAL_LAGOS_PARTS.month - 1, INITIAL_LAGOS_PARTS.day);
+const INITIAL_LAGOS_DATE_KEY = dateKeyForClient(INITIAL_LAGOS_PARTS.year, INITIAL_LAGOS_PARTS.month - 1, INITIAL_LAGOS_PARTS.day);
 
 const getStoredUser = () => {
   try {
@@ -28,15 +33,14 @@ const getStoredSubscription = () => {
 };
 
 const getTodayMeal = (meals, timetable) => {
-  const today = new Date();
-  const todayEntry = timetable.find((entry) => new Date(entry.date).toDateString() === today.toDateString());
+  const todayEntry = timetable.find((entry) => (entry.dateKey || String(entry.date).slice(0, 10)) === INITIAL_LAGOS_DATE_KEY);
   if (todayEntry) {
     const scheduledId = typeof todayEntry.meal === 'object' ? todayEntry.meal._id : todayEntry.mealId;
     const scheduledTitle = typeof todayEntry.meal === 'object' ? todayEntry.meal.title : todayEntry.meal;
     const scheduledMeal = meals.find((item) => item.id === scheduledId || item._id === scheduledId || item.title === scheduledTitle);
     if (scheduledMeal) return scheduledMeal;
   }
-  const index = today.getDate() % meals.length;
+  const index = INITIAL_LAGOS_PARTS.day % meals.length;
   return meals[index] || meals[0];
 };
 
@@ -66,27 +70,23 @@ function App() {
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const mealResult = await api.get('/meals');
-        const timetableResult = await api.get('/timetable');
-        const plansResult = await api.get('/subscriptions/plans');
+      const results = await Promise.allSettled([
+        api.get('/meals'),
+        api.get('/timetable/current'),
+        api.get('/subscriptions/plans')
+      ]);
 
-        if (Array.isArray(mealResult.data?.meals) && mealResult.data.meals.length > 0) {
-          setMeals(mealResult.data.meals.map((meal) => ({ ...meal, id: meal.id || meal._id, category: getCategoryName(meal.category) })));
-        }
-        if (Array.isArray(timetableResult.data?.entries) && timetableResult.data.entries.length > 0) {
-          setTimetable(timetableResult.data.entries);
-        }
-        if (Array.isArray(plansResult.data?.plans) && plansResult.data.plans.length > 0) {
-          setPlans(plansResult.data.plans);
-        }
-      } catch {
-        setMeals(demoMeals);
-        setTimetable(demoTimetable);
-        setPlans(demoPlans);
-      } finally {
-        setLoading(false);
+      const [mealResult, timetableResult, plansResult] = results;
+      if (mealResult.status === 'fulfilled' && Array.isArray(mealResult.value.data?.meals) && mealResult.value.data.meals.length > 0) {
+        setMeals(mealResult.value.data.meals.map((meal) => ({ ...meal, id: meal.id || meal._id, category: getCategoryName(meal.category) })));
       }
+      if (timetableResult.status === 'fulfilled' && Array.isArray(timetableResult.value.data?.entries) && timetableResult.value.data.entries.length > 0) {
+        setTimetable(timetableResult.value.data.entries);
+      }
+      if (plansResult.status === 'fulfilled' && Array.isArray(plansResult.value.data?.plans) && plansResult.value.data.plans.length > 0) {
+        setPlans(plansResult.value.data.plans);
+      }
+      setLoading(false);
     };
 
     loadData();
@@ -176,12 +176,12 @@ function App() {
             <Route path="/direction-requests" element={<DirectionRequestPage user={user} meals={meals} isSubscriber={isSubscriber(user)} />} />
             <Route path="/delivery" element={<DeliveryPage />} />
             <Route path="/login" element={<AuthPage onLogin={handleLogin} onRegister={handleRegister} user={user} />} />
-            <Route path="/admin" element={<AdminPage meals={meals} timetable={timetable} />} />
+            <Route path="/admin" element={user?.role === 'admin' ? <AdminPage meals={meals} timetable={timetable} /> : <div className="page empty-state"><h2>Administrator access required</h2><p>Sign in with an administrator account to manage meals and schedules.</p><Link to="/login" className="primary-btn">Login</Link></div>} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="*" element={<HomePage meals={meals} timetable={timetable} isSubscriber={isSubscriber(user)} />} />
           </Routes>
         ) : null}
-        <SiteFooter />
+        <Footer user={user} isSubscriber={isSubscriber(user)} />
       </div>
     </BrowserRouter>
   );
@@ -213,16 +213,6 @@ function ScrollRevealObserver({ active }) {
   }, [active, location.pathname]);
 
   return null;
-}
-
-function SiteFooter() {
-  return (
-    <footer className="site-footer">
-      <img src="/bk-mark.svg" alt="" />
-      <span>Bachelor Kitchen</span>
-      <small>Eat well. Cook fast. Live better.</small>
-    </footer>
-  );
 }
 
 function Header({ user, onLogout }) {
@@ -535,40 +525,37 @@ function MealDetailPage({ meals, isSubscriber }) {
 }
 
 function TimetablePage({ timetable, isSubscriber }) {
-  const [viewDate, setViewDate] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [viewDate, setViewDate] = useState(() => new Date(INITIAL_LOCAL_DATE.getFullYear(), INITIAL_LOCAL_DATE.getMonth(), 1));
   const [monthEntries, setMonthEntries] = useState(timetable);
   const [monthRequestState, setMonthRequestState] = useState(null);
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const monthLabel = viewDate.toLocaleDateString('en-NG', { month: 'long', year: 'numeric' });
-  const monthKey = `${year}-${month + 1}`;
+  const monthKey = `${year}-${month + 1}-${isSubscriber ? 'subscriber' : 'free'}`;
   const planStatus = monthRequestState?.key === monthKey ? monthRequestState.status : 'loading';
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const leadingDays = (new Date(year, month, 1).getDay() + 6) % 7;
 
   useEffect(() => {
     let active = true;
-    api.get('/timetable', { params: { month: month + 1, year } })
+    api.get('/timetable/current')
       .then((result) => {
         if (active && Array.isArray(result.data.entries)) {
-          const hasEntries = result.data.entries.length > 0;
-          const hasSameMonthFallback = timetable.some((entry) => {
-            const entryDate = new Date(`${String(entry.date).slice(0, 10)}T12:00:00`);
-            return entryDate.getFullYear() === year && entryDate.getMonth() === month;
-          });
-          if (hasEntries || !hasSameMonthFallback) setMonthEntries(result.data.entries);
+          setMonthEntries(result.data.entries.length ? result.data.entries : timetable);
+          if (result.data.year && result.data.month) {
+            setViewDate(new Date(result.data.year, result.data.month - 1, 1));
+          }
           setMonthRequestState({ key: monthKey, status: 'ready' });
         }
       })
       .catch(() => {
         if (active) {
-          const fallback = month === new Date().getMonth() && year === new Date().getFullYear() ? timetable : [];
-          setMonthEntries(fallback);
+          setMonthEntries(timetable);
           setMonthRequestState({ key: monthKey, status: 'error' });
         }
       });
     return () => { active = false; };
-  }, [month, monthKey, timetable, year]);
+  }, [isSubscriber, monthKey, timetable]);
 
   const entriesByDay = new Map(monthEntries.map((entry) => [Number(String(entry.date).slice(8, 10)) || new Date(entry.date).getDate(), entry]));
   const dateNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
@@ -576,11 +563,12 @@ function TimetablePage({ timetable, isSubscriber }) {
   while (calendarCells.length % 7) calendarCells.push(null);
   const mobileWeeks = Array.from({ length: Math.ceil(daysInMonth / 7) }, (_, index) => dateNumbers.slice(index * 7, index * 7 + 7));
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const currentDateKey = INITIAL_LAGOS_DATE_KEY;
 
   const entryFor = (day) => entriesByDay.get(day);
-  const mealTitle = (entry) => typeof entry?.meal === 'object' ? entry.meal.title : entry?.meal;
+  const mealTitle = (entry) => entry?.mealSnapshot?.title || (typeof entry?.meal === 'object' ? entry.meal.title : entry?.meal);
   const mealId = (entry) => typeof entry?.meal === 'object' ? entry.meal._id : entry?.mealId;
-  const mealCategory = (entry) => typeof entry?.meal === 'object' ? getCategoryName(entry.meal.category) : getCategoryName(entry?.category);
+  const mealCategory = (entry) => entry?.mealSnapshot?.categoryName || (typeof entry?.meal === 'object' ? getCategoryName(entry.meal.category) : getCategoryName(entry?.category));
 
   return (
     <main className="page timetable-page">
@@ -590,12 +578,7 @@ function TimetablePage({ timetable, isSubscriber }) {
           <h2>Meal plan</h2>
           <p className="muted-copy">Plan the month, cook with everyday ingredients, and keep your week moving.</p>
         </div>
-        <div className="month-controls" aria-label="Choose month">
-          <button type="button" className="calendar-arrow" aria-label="Previous month" onClick={() => setViewDate(new Date(year, month - 1, 1))}>‹</button>
-          <strong>{monthLabel}</strong>
-          <button type="button" className="calendar-arrow" aria-label="Next month" onClick={() => setViewDate(new Date(year, month + 1, 1))}>›</button>
-          <button type="button" className="text-action" onClick={() => setViewDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>Current month</button>
-        </div>
+        <div className="month-controls" aria-label="Current meal plan month"><strong>{monthLabel}</strong><span className="timezone-note">Nigeria time</span></div>
       </div>
 
       {!isSubscriber ? <div className="calendar-access-note">Weeks 1-2 are open to everyone. Weeks 3 onward are included with a subscription.</div> : null}
@@ -610,17 +593,17 @@ function TimetablePage({ timetable, isSubscriber }) {
             const title = mealTitle(entry);
 
             return (
-              <div className={`calendar-cell ${locked ? 'calendar-locked' : ''}`} role="cell" key={day}>
+              <div className={`calendar-cell ${locked ? 'calendar-locked' : ''} ${dateKeyForClient(year, month, day) === currentDateKey ? 'calendar-today' : ''}`} role="cell" key={day}>
                 <span className="calendar-date">{String(day).padStart(2, '0')}</span>
                 {locked ? (
                   <div className="calendar-lock"><span aria-hidden="true">⌑</span><small>Subscribers</small></div>
                 ) : title ? (
                   <>
-                    {entry.isExotic || entry.meal?.isExotic ? <span className="exotic-label">🌍 Exotic</span> : null}
+                    {entry.mealSnapshot?.isExotic || entry.isExotic || entry.meal?.isExotic ? <span className="exotic-label">🌍 Exotic</span> : null}
                     {mealId(entry) ? <Link className="calendar-meal" to={`/meals/${mealId(entry)}`}>{title}</Link> : <strong className="calendar-meal">{title}</strong>}
                     <span className="calendar-category">{mealCategory(entry)}</span>
-                    <small>{entry.preparationTime || entry.meal?.preparationTime || ''}</small>
-                    {entry.estimatedCost || entry.meal?.estimatedCost ? <small>Est. {formatCurrency(entry.estimatedCost || entry.meal?.estimatedCost)}</small> : null}
+                    <small>{entry.mealSnapshot?.preparationTime || entry.preparationTime || entry.meal?.preparationTime || ''}</small>
+                    {entry.mealSnapshot?.estimatedCost || entry.estimatedCost || entry.meal?.estimatedCost ? <small>Est. {formatCurrency(entry.mealSnapshot?.estimatedCost || entry.estimatedCost || entry.meal?.estimatedCost)}</small> : null}
                   </>
                 ) : <small className="calendar-empty">No meal planned</small>}
               </div>
@@ -640,9 +623,9 @@ function TimetablePage({ timetable, isSubscriber }) {
                 const title = mealTitle(entry);
                 const date = new Date(year, month, day);
                 return (
-                  <article className="mobile-meal-row" key={day}>
+                  <article className={`mobile-meal-row ${dateKeyForClient(year, month, day) === currentDateKey ? 'calendar-today' : ''}`} key={day}>
                     <div className="mobile-date"><strong>{date.toLocaleDateString('en-NG', { weekday: 'long' })}</strong><span>{date.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })}</span></div>
-                    {title ? <div className="mobile-meal-info">{entry.isExotic || entry.meal?.isExotic ? <span className="exotic-label">🌍 Exotic meal</span> : null}<strong>{title}</strong><span>{mealCategory(entry)} · {entry.preparationTime || entry.meal?.preparationTime || 'Meal plan'}</span>{mealId(entry) ? <Link to={`/meals/${mealId(entry)}`}>View meal</Link> : null}</div> : <span className="muted-copy">No meal planned</span>}
+                    {title ? <div className="mobile-meal-info">{entry.mealSnapshot?.isExotic || entry.isExotic || entry.meal?.isExotic ? <span className="exotic-label">🌍 Exotic meal</span> : null}<strong>{title}</strong><span>{mealCategory(entry)} · {entry.mealSnapshot?.preparationTime || entry.preparationTime || entry.meal?.preparationTime || 'Meal plan'}</span>{mealId(entry) ? <Link to={`/meals/${mealId(entry)}`}>View meal</Link> : null}</div> : <span className="muted-copy">No meal planned</span>}
                   </article>
                 );
               })}
@@ -968,6 +951,8 @@ function AdminPage({ meals, timetable }) {
         </div>
       </div>
 
+      <AdminScheduleManager meals={meals} />
+
       <section className="detail-panel ingredient-price-admin">
         <h3>Ingredient market prices</h3>
         <p className="muted-copy">Add current local estimates. Meal costs should be reviewed as market prices change.</p>
@@ -984,6 +969,138 @@ function AdminPage({ meals, timetable }) {
         {ingredientPrices.length ? <div className="price-admin-list">{ingredientPrices.map((item) => <div className="price-admin-row" key={item._id}><strong>{item.name}</strong><span>{item.quantity} {item.unit}</span><span>{formatCurrency(item.price)}</span><span>{item.location}{item.market ? ` · ${item.market}` : ''}</span></div>)}</div> : <p className="muted-copy">No market prices have been added yet.</p>}
       </section>
     </main>
+  );
+}
+
+function AdminScheduleManager({ meals }) {
+  const [year, setYear] = useState(INITIAL_LOCAL_DATE.getFullYear());
+  const [month, setMonth] = useState(INITIAL_LOCAL_DATE.getMonth() + 1);
+  const [schedule, setSchedule] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [reason, setReason] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const loadSchedule = async () => {
+    setBusy(true);
+    try {
+      const result = await api.get(`/admin/timetable/${year}/${month}`);
+      setSchedule(result.data.schedule);
+      const historyResult = await api.get(`/admin/timetable/${year}/${month}/history`);
+      setHistory(historyResult.data.history || []);
+    } catch (error) {
+      setSchedule(null);
+      setHistory([]);
+      setMessage(error.response?.data?.message || 'Schedule is not available. Generate the annual plan first.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    const fetchSchedule = async () => {
+      try {
+        const result = await api.get(`/admin/timetable/${year}/${month}`);
+        const historyResult = await api.get(`/admin/timetable/${year}/${month}/history`);
+        if (active) {
+          setSchedule(result.data.schedule);
+          setHistory(historyResult.data.history || []);
+        }
+      } catch (error) {
+        if (active) {
+          setSchedule(null);
+          setHistory([]);
+          setMessage(error.response?.data?.message || 'Schedule is not available. Generate the annual plan first.');
+        }
+      }
+    };
+    fetchSchedule();
+    return () => { active = false; };
+  }, [year, month]);
+
+  const generateYear = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      await api.post(`/admin/timetable/generate/${year}`);
+      setMessage(`Annual schedule for ${year} is ready.`);
+      await loadSchedule();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Could not generate this annual plan.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveAssignment = async (entry, mealId) => {
+    if (!mealId || !reason.trim()) {
+      setMessage('Choose a meal and provide a reason before saving a manual change.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.patch(`/admin/timetable/${year}/${month}/${entry._id}`, { mealId, reason });
+      setReason('');
+      setMessage(`${entry.dateKey} assignment saved and protected from automatic changes.`);
+      await loadSchedule();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Could not save this assignment.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const publishSchedule = async () => {
+    setBusy(true);
+    try {
+      await api.post(`/admin/timetable/publish/${year}/${month}`);
+      setMessage('Monthly schedule published.');
+      await loadSchedule();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Could not publish this schedule.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="detail-panel schedule-admin">
+      <div className="section-header">
+        <div><h3>Monthly schedule manager</h3><p className="muted-copy">Generated assignments are prepared ahead. Manual changes are recorded and never overwritten automatically.</p></div>
+        <button type="button" className="secondary-btn" onClick={generateYear} disabled={busy}>Generate {year} annual plan</button>
+      </div>
+      <div className="schedule-admin-controls">
+        <label>Year<input type="number" value={year} min="2020" max="2200" onChange={(event) => setYear(Number(event.target.value))} /></label>
+        <label>Month<select value={month} onChange={(event) => setMonth(Number(event.target.value))}>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Date(2000, index, 1).toLocaleDateString('en-NG', { month: 'long' })}</option>)}</select></label>
+        <button type="button" className="primary-btn" onClick={publishSchedule} disabled={busy || !schedule}>Publish month</button>
+      </div>
+      <label className="schedule-reason-field">Reason for manual assignments<input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="For example: ingredient availability changed" /></label>
+      {message ? <p className="price-message" role="status">{message}</p> : null}
+      {schedule ? <>
+        <p className="schedule-state">Status: <strong>{schedule.status}</strong> · {schedule.entries.length} daily assignments · {schedule.warnings?.length || 0} warnings</p>
+        {schedule.warnings?.map((warning) => <p className="calendar-error" key={warning}>{warning}</p>)}
+        <div className="schedule-edit-list">
+          {schedule.entries.map((entry) => <ScheduleEditRow key={entry._id} entry={entry} meals={meals} busy={busy} onSave={saveAssignment} />)}
+        </div>
+        <h4>Change history</h4>
+        {history.length ? <div className="schedule-history">{history.slice(0, 20).map((item) => <div key={item._id}><strong>{item.dateKey}</strong><span>{item.action.replace('-', ' ')}</span><span>{item.changedBy?.name || 'System'}</span><small>{item.reason}</small></div>)}</div> : <p className="muted-copy">No schedule changes recorded for this month.</p>}
+      </> : <p className="muted-copy">{busy ? 'Loading schedule...' : 'Generate an annual plan to create editable monthly schedules.'}</p>}
+    </section>
+  );
+}
+
+function ScheduleEditRow({ entry, meals, busy, onSave }) {
+  const [mealId, setMealId] = useState(entry.meal?._id || entry.meal);
+  return (
+    <div className="schedule-edit-row">
+      <div><strong>{entry.dateKey}</strong><span>{entry.mealSnapshot?.title || entry.meal?.title || 'Assigned meal'}</span><small>{entry.isManuallyModified ? 'Manual override' : 'Automatic'}</small></div>
+      <label className="visually-hidden" htmlFor={`schedule-meal-${entry._id}`}>Meal for {entry.dateKey}</label>
+      <select id={`schedule-meal-${entry._id}`} value={mealId} onChange={(event) => setMealId(event.target.value)}>
+        {meals.map((meal) => <option key={meal._id || meal.id} value={meal._id || meal.id}>{meal.title}</option>)}
+      </select>
+      <button type="button" className="secondary-btn" onClick={() => onSave(entry, mealId)} disabled={busy}>Save</button>
+    </div>
   );
 }
 

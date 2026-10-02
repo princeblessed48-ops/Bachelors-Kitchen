@@ -1070,6 +1070,160 @@ a.calendar-meal:hover { color: #2f6690; text-decoration: underline; }
 .price-admin-row strong { color: #12344d; }
 .price-message { color: #1f4e79; font-weight: 700; }
 
+.timezone-note {
+  padding: .4rem .65rem;
+  border: 1px solid rgba(31,78,121,.18);
+  border-radius: 999px;
+  color: #587286;
+  background: rgba(247,243,234,.8);
+  font-size: .76rem;
+}
+
+.calendar-today {
+  position: relative;
+  outline: 2px solid #d97732;
+  outline-offset: -2px;
+  background-color: #fff7ed;
+}
+
+.calendar-today .calendar-date::after {
+  content: 'TODAY';
+  margin-left: .4rem;
+  padding: .12rem .3rem;
+  border-radius: 4px;
+  color: #fff;
+  background: #b85f25;
+  font-size: .55rem;
+  vertical-align: middle;
+}
+
+.schedule-admin { margin-top: 1rem; }
+
+.schedule-admin .section-header { align-items: flex-start; }
+.schedule-admin .section-header h3 { margin-bottom: .25rem; }
+
+.schedule-admin-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .8rem;
+  margin: 1rem 0;
+}
+
+.schedule-admin-controls label {
+  display: grid;
+  gap: .35rem;
+  color: #244c6b;
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+.schedule-admin-controls input,
+.schedule-admin-controls select,
+.schedule-edit-row input,
+.schedule-edit-row select {
+  min-height: 42px;
+  padding: .55rem .7rem;
+  border: 1px solid rgba(31,78,121,.22);
+  border-radius: 8px;
+  color: #12344d;
+  background: #fffdf8;
+}
+
+.schedule-admin-controls input { width: 130px; }
+
+.schedule-reason-field {
+  display: grid;
+  gap: .35rem;
+  max-width: 560px;
+  margin: .8rem 0;
+  color: #244c6b;
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+.schedule-reason-field input {
+  min-height: 42px;
+  padding: .55rem .7rem;
+  border: 1px solid rgba(31,78,121,.22);
+  border-radius: 8px;
+  color: #12344d;
+  background: #fffdf8;
+}
+
+.schedule-state {
+  color: #456176;
+  font-size: .88rem;
+}
+
+.schedule-edit-list {
+  display: grid;
+  gap: .55rem;
+  max-height: 620px;
+  overflow: auto;
+  padding-right: .25rem;
+}
+
+.schedule-edit-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.3fr) auto;
+  align-items: center;
+  gap: .65rem;
+  padding: .6rem;
+  border: 1px solid rgba(31,78,121,.13);
+  border-radius: 8px;
+  background: #f6f8f9;
+}
+
+.schedule-edit-row > div {
+  display: grid;
+  gap: .12rem;
+  color: #12344d;
+  font-size: .86rem;
+}
+
+.schedule-edit-row > div span,
+.schedule-edit-row > div small {
+  color: #587286;
+  font-size: .75rem;
+}
+
+.schedule-edit-row select { min-width: 0; }
+.schedule-edit-row button { min-height: 42px; padding: .55rem .8rem; }
+
+.schedule-history {
+  display: grid;
+  gap: .4rem;
+  max-height: 230px;
+  overflow: auto;
+}
+
+.schedule-history > div {
+  display: grid;
+  grid-template-columns: 110px 1fr 1fr;
+  gap: .5rem;
+  padding: .55rem .65rem;
+  border-radius: 7px;
+  color: #456176;
+  background: #edf2f5;
+  font-size: .8rem;
+}
+
+.schedule-history > div small { grid-column: 1 / -1; color: #6b8293; }
+.schedule-history strong { color: #12344d; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 [data-reveal] {
   opacity: 0;
   transform: translateY(16px);
@@ -1166,10 +1320,22 @@ a.calendar-meal:hover { color: #2f6690; text-decoration: underline; }
   .main-nav a { padding: .5rem .65rem; white-space: nowrap; }
   .page { width: min(100% - 1.25rem, 1200px); padding-top: 1rem; }
   .site-footer { flex-wrap: wrap; }
+  .schedule-admin .section-header { flex-direction: column; }
+  .schedule-edit-row { grid-template-columns: 1fr auto; }
+  .schedule-edit-row select,
+  .schedule-edit-row input { grid-column: 1 / -1; width: 100%; }
+  .schedule-edit-row button { grid-column: 2; grid-row: 1; }
   .hero-copy h1 { font-size: 2.6rem; }
   .section-header h2 { font-size: 1.6rem; }
   .meal-highlight-copy h3 { font-size: 2rem; }
   .hero-section { padding: 1.5rem; }
+}
+
+@media (max-width: 430px) {
+  .schedule-admin-controls { display: grid; grid-template-columns: 1fr 1fr; }
+  .schedule-admin-controls input { width: 100%; }
+  .schedule-admin-controls > button { grid-column: 1 / -1; }
+  .schedule-history > div { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 480px) {
