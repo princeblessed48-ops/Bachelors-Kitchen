@@ -23,18 +23,25 @@ router.post(
       return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
     }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, preferredCategory, allergies, customAllergies } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({
+      name,
+      email,
+      password,
+      preferredCategory: preferredCategory || 'High Protein',
+      allergies: allergies || [],
+      customAllergies: customAllergies || []
+    });
     res.status(201).json({
       success: true,
       token: generateToken(user._id),
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, preferredCategory: user.preferredCategory, allergies: user.allergies, customAllergies: user.customAllergies }
     });
   }
 );
@@ -61,7 +68,7 @@ router.post(
     res.json({
       success: true,
       token: generateToken(user._id),
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, preferredCategory: user.preferredCategory, allergies: user.allergies, customAllergies: user.customAllergies }
     });
   }
 );

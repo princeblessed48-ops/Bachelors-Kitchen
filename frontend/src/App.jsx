@@ -50,6 +50,14 @@ const isSubscriber = (user) => {
   return Boolean(getStoredSubscription()?.active || user.subscription === 'active');
 };
 
+function useRouteMeta({ title, description }) {
+  useEffect(() => {
+    if (title) document.title = title;
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription && description) metaDescription.setAttribute('content', description);
+  }, [title, description]);
+}
+
 function App() {
   const [user, setUser] = useState(getStoredUser());
   const [meals, setMeals] = useState(demoMeals);
@@ -168,7 +176,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage meals={meals} timetable={timetable} isSubscriber={isSubscriber(user)} />} />
             <Route path="/meals" element={<MealsPage meals={meals} isSubscriber={isSubscriber(user)} />} />
-            <Route path="/meals/:id" element={<MealDetailPage meals={meals} isSubscriber={isSubscriber(user)} />} />
+            <Route path="/meals/:id" element={<MealDetailPage meals={meals} isSubscriber={isSubscriber(user)} user={user} />} />
             <Route path="/meal-plan" element={<TimetablePage timetable={timetable} isSubscriber={isSubscriber(user)} />} />
             <Route path="/plans" element={<SubscriptionPage plans={plans} user={user} onSubscribe={subscribeUser} />} />
             <Route path="/billing" element={<BillingPage billing={billing} />} />
@@ -264,6 +272,10 @@ function Header({ user, onLogout }) {
 }
 
 function HomePage({ meals, timetable, isSubscriber }) {
+  useRouteMeta({
+    title: 'Bachelor Kitchen | Easy Nigerian Meals & Monthly Meal Plans',
+    description: 'Discover easy Nigerian meals, weekly meal plans and high-protein recipes for busy living.'
+  });
   const todaysMeal = getTodayMeal(meals, timetable);
 
   return (
@@ -327,6 +339,10 @@ function HomePage({ meals, timetable, isSubscriber }) {
 }
 
 function MealsPage({ meals, isSubscriber }) {
+  useRouteMeta({
+    title: 'Nigerian Meals | Bachelor Kitchen',
+    description: 'Browse easy Nigerian recipes, breakfast ideas, high-protein dishes and balanced weekly meal inspiration.'
+  });
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
 
@@ -383,9 +399,13 @@ function MealsPage({ meals, isSubscriber }) {
   );
 }
 
-function MealDetailPage({ meals, isSubscriber }) {
+function MealDetailPage({ meals, isSubscriber, user }) {
   const { id } = useParams();
   const meal = meals.find((item) => item.id === id || item._id === id);
+  useRouteMeta({
+    title: `${meal?.title || 'Meal'} Recipe | Bachelor Kitchen`,
+    description: meal ? `${meal.description} Learn more about this Nigerian recipe and meal plan ideas from Bachelor Kitchen.` : 'Meal recipe details from Bachelor Kitchen.'
+  });
   const navigate = useNavigate();
   const [subscriberDetails, setSubscriberDetails] = useState(null);
   const [premiumState, setPremiumState] = useState('idle');
@@ -525,6 +545,10 @@ function MealDetailPage({ meals, isSubscriber }) {
 }
 
 function TimetablePage({ timetable, isSubscriber }) {
+  useRouteMeta({
+    title: 'Monthly Nigerian Meal Plan | Bachelor Kitchen',
+    description: 'See this month’s morning and evening meal schedule, Nigerian recipes and subscriber-friendly meal planning.'
+  });
   const [viewDate, setViewDate] = useState(() => new Date(INITIAL_LOCAL_DATE.getFullYear(), INITIAL_LOCAL_DATE.getMonth(), 1));
   const [monthEntries, setMonthEntries] = useState(timetable);
   const [monthRequestState, setMonthRequestState] = useState(null);
@@ -557,7 +581,13 @@ function TimetablePage({ timetable, isSubscriber }) {
     return () => { active = false; };
   }, [isSubscriber, monthKey, timetable]);
 
-  const entriesByDay = new Map(monthEntries.map((entry) => [Number(String(entry.date).slice(8, 10)) || new Date(entry.date).getDate(), entry]));
+  const entriesByDay = new Map();
+  monthEntries.forEach((entry) => {
+    const dayNumber = Number(String(entry.date).slice(8, 10)) || new Date(entry.date).getDate();
+    const dayEntries = entriesByDay.get(dayNumber) || [];
+    dayEntries.push(entry);
+    entriesByDay.set(dayNumber, dayEntries);
+  });
   const dateNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
   const calendarCells = [...Array(leadingDays).fill(null), ...dateNumbers];
   while (calendarCells.length % 7) calendarCells.push(null);
@@ -565,7 +595,7 @@ function TimetablePage({ timetable, isSubscriber }) {
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const currentDateKey = INITIAL_LAGOS_DATE_KEY;
 
-  const entryFor = (day) => entriesByDay.get(day);
+  const entryFor = (day) => entriesByDay.get(day) || [];
   const mealTitle = (entry) => entry?.mealSnapshot?.title || (typeof entry?.meal === 'object' ? entry.meal.title : entry?.meal);
   const mealId = (entry) => typeof entry?.meal === 'object' ? entry.meal._id : entry?.mealId;
   const mealCategory = (entry) => entry?.mealSnapshot?.categoryName || (typeof entry?.meal === 'object' ? getCategoryName(entry.meal.category) : getCategoryName(entry?.category));
@@ -589,22 +619,29 @@ function TimetablePage({ timetable, isSubscriber }) {
           {calendarCells.map((day, index) => {
             if (!day) return <div className="calendar-cell calendar-blank" role="cell" key={`blank-${index}`} />;
             const locked = !isSubscriber && day > 14;
-            const entry = entryFor(day);
-            const title = mealTitle(entry);
+            const entries = entryFor(day);
 
             return (
               <div className={`calendar-cell ${locked ? 'calendar-locked' : ''} ${dateKeyForClient(year, month, day) === currentDateKey ? 'calendar-today' : ''}`} role="cell" key={day}>
                 <span className="calendar-date">{String(day).padStart(2, '0')}</span>
                 {locked ? (
                   <div className="calendar-lock"><span aria-hidden="true">⌑</span><small>Subscribers</small></div>
-                ) : title ? (
-                  <>
-                    {entry.mealSnapshot?.isExotic || entry.isExotic || entry.meal?.isExotic ? <span className="exotic-label">🌍 Exotic</span> : null}
-                    {mealId(entry) ? <Link className="calendar-meal" to={`/meals/${mealId(entry)}`}>{title}</Link> : <strong className="calendar-meal">{title}</strong>}
-                    <span className="calendar-category">{mealCategory(entry)}</span>
-                    <small>{entry.mealSnapshot?.preparationTime || entry.preparationTime || entry.meal?.preparationTime || ''}</small>
-                    {entry.mealSnapshot?.estimatedCost || entry.estimatedCost || entry.meal?.estimatedCost ? <small>Est. {formatCurrency(entry.mealSnapshot?.estimatedCost || entry.estimatedCost || entry.meal?.estimatedCost)}</small> : null}
-                  </>
+                ) : entries.length ? (
+                  <div className="calendar-day-meals">
+                    {entries.map((entry) => {
+                      const title = mealTitle(entry);
+                      const category = mealCategory(entry);
+                      return (
+                        <div key={`${entry.dateKey}-${entry.mealPeriod}`} className="calendar-slot">
+                          <span className="slot-label">{entry.mealPeriod === 'evening' ? 'Evening' : 'Morning'}</span>
+                          {entry.mealSnapshot?.isExotic || entry.isExotic || entry.meal?.isExotic ? <span className="exotic-label">🌍 Exotic</span> : null}
+                          {mealId(entry) ? <Link className="calendar-meal" to={`/meals/${mealId(entry)}`}>{title}</Link> : <strong className="calendar-meal">{title}</strong>}
+                          <span className="calendar-category">{category}</span>
+                          <small>{entry.mealSnapshot?.preparationTime || entry.preparationTime || entry.meal?.preparationTime || ''}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : <small className="calendar-empty">No meal planned</small>}
               </div>
             );

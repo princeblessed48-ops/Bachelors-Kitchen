@@ -53,9 +53,9 @@ const buildAnnualAssignments = (year, meals, priorEntries = []) => {
   if (exoticMeals.length === 0) warnings.push('No published exotic meals are available; the weekly exotic target cannot be met.');
   if (meals.length < 7) warnings.push('Fewer than seven published meals are available; repetition controls will be relaxed.');
 
-  const chooseMeal = (month, day) => {
+  const chooseMeal = (month, day, mealPeriod) => {
     const isExoticDay = weekdayFor(year, month, day) === 6;
-    const pool = isExoticDay && exoticMeals.length ? exoticMeals : meals;
+    const pool = isExoticDay && exoticMeals.length && mealPeriod === 'evening' ? exoticMeals : meals;
     let candidates = pool.filter((meal) => !recent.slice(-7).includes(String(meal._id)));
     if (!candidates.length) candidates = pool.filter((meal) => String(meal._id) !== recent[recent.length - 1]);
     if (!candidates.length) candidates = pool;
@@ -76,23 +76,34 @@ const buildAnnualAssignments = (year, meals, priorEntries = []) => {
 
   for (let month = 1; month <= 12; month += 1) {
     for (let day = 1; day <= daysInMonth(year, month); day += 1) {
-      const selectedMeal = chooseMeal(month, day);
-      const categoryId = selectedMeal.category?._id || selectedMeal.category || null;
-      const dateKey = dateKeyFor(year, month, day);
-      const entry = {
-        date: utcDateFor(year, month, day),
-        dateKey,
-        dayNumber: day,
-        meal: selectedMeal._id,
-        category: categoryId,
-        assignmentSource: 'automatic',
-        isManuallyModified: false,
-        mealSnapshot: snapshotMeal(selectedMeal),
-        updatedAt: new Date()
-      };
-      monthlyEntries[month - 1].push(entry);
-      counts.set(String(categoryId || 'uncategorized'), (counts.get(String(categoryId || 'uncategorized')) || 0) + 1);
-      recent.push(String(selectedMeal._id));
+      const usedMealIds = new Set();
+      const periods = ['morning', 'evening'];
+      for (const mealPeriod of periods) {
+        const selectedMeal = chooseMeal(month, day, mealPeriod);
+        const mealId = String(selectedMeal._id);
+        if (usedMealIds.has(mealId)) {
+          const fallback = meals.find((meal) => !usedMealIds.has(String(meal._id)) && !recent.slice(-7).includes(String(meal._id))) || meals.find((meal) => !usedMealIds.has(String(meal._id))) || selectedMeal;
+          selectedMeal = fallback;
+        }
+        usedMealIds.add(String(selectedMeal._id));
+        const categoryId = selectedMeal.category?._id || selectedMeal.category || null;
+        const dateKey = dateKeyFor(year, month, day);
+        const entry = {
+          date: utcDateFor(year, month, day),
+          dateKey,
+          dayNumber: day,
+          mealPeriod,
+          meal: selectedMeal._id,
+          category: categoryId,
+          assignmentSource: 'automatic',
+          isManuallyModified: false,
+          mealSnapshot: snapshotMeal(selectedMeal),
+          updatedAt: new Date()
+        };
+        monthlyEntries[month - 1].push(entry);
+        counts.set(String(categoryId || 'uncategorized'), (counts.get(String(categoryId || 'uncategorized')) || 0) + 1);
+        recent.push(String(selectedMeal._id));
+      }
     }
   }
 

@@ -20,6 +20,7 @@ const currentMonthResponse = async (req, res) => {
         date: entry.date,
         dateKey: entry.dateKey,
         dayNumber: entry.dayNumber,
+        mealPeriod: entry.mealPeriod || 'morning',
         meal: entry.meal,
         category: entry.category,
         mealSnapshot: entry.mealSnapshot,

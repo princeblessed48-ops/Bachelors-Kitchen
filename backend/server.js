@@ -15,6 +15,9 @@ const deliveryRoutes = require('./src/routes/deliveryRoutes');
 const directionRoutes = require('./src/routes/directionRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const adminTimetableRoutes = require('./src/routes/adminTimetableRoutes');
+const videoRoutes = require('./src/routes/videoRoutes');
+const userPreferenceRoutes = require('./src/routes/userPreferenceRoutes');
+const allergenRoutes = require('./src/routes/allergenRoutes');
 const { startScheduleJobs } = require('./src/services/scheduleJobs');
 const { notFound, errorHandler } = require('./src/middleware/errorMiddleware');
 
@@ -38,6 +41,9 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/chefs', chefRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/direction-requests', directionRoutes);
+app.use('/api/videos', videoRoutes);
+app.use('/api/preferences', userPreferenceRoutes);
+app.use('/api/allergens', allergenRoutes);
 app.use('/api/admin/timetable', adminTimetableRoutes);
 app.use('/api/admin', adminRoutes);
 

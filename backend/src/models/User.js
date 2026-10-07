@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     phone: { type: String, default: '' },
+    preferredCategory: { type: String, default: 'High Protein' },
+    allergies: [{ type: String, default: [] }],
+    customAllergies: [{ type: String, default: [] }],
+    lastPreferenceChange: { type: Date, default: null },
+    nextAllowedPreferenceChange: { type: Date, default: null },
     favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Meal' }]
   },
   { timestamps: true }
