@@ -69,10 +69,10 @@ function App() {
     startDate: '2026-09-01',
     expiryDate: '2026-10-01',
     status: 'active',
-    amountPaid: 5000,
+    amountPaid: 2000,
     payments: [
-      { date: '2026-09-01', amount: 5000, reference: 'BK-1001', status: 'Successful', method: 'Card' },
-      { date: '2026-08-01', amount: 5000, reference: 'BK-0910', status: 'Successful', method: 'Bank Transfer' },
+      { date: '2026-09-01', amount: 2000, reference: 'BK-1001', status: 'Successful', method: 'Card' },
+      { date: '2026-08-01', amount: 2000, reference: 'BK-0910', status: 'Successful', method: 'Bank Transfer' },
     ],
   });
 

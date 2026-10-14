@@ -2,7 +2,7 @@ export const demoPlans = [
   {
     id: 'monthly',
     name: 'Monthly Pro',
-    price: 5000,
+    price: 2000,
     duration: '1 month',
     description: 'Access all premium recipes, nutrition data, and chef content.',
     features: ['Nutrition insights', 'Video guides', 'Chef details', 'Billing history'],
@@ -11,7 +11,7 @@ export const demoPlans = [
   {
     id: 'annual',
     name: 'Annual Elite',
-    price: 48000,
+    price: 20000,
     duration: '12 months',
     description: 'Best choice for long-term meal planning and savings.',
     features: ['Everything in Monthly Pro', 'Priority support', 'Discounted chef meals'],

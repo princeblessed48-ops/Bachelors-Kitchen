@@ -83,7 +83,7 @@ const seed = async () => {
 
     const planMonthly = await SubscriptionPlan.create({
       name: 'Monthly Pro',
-      price: 5000,
+      price: 2000,
       duration: '1 month',
       description: 'Access all premium recipes and chef content',
       features: ['Nutrition info', 'Video guides', 'Chef details', 'Delivery calculator'],
@@ -92,7 +92,7 @@ const seed = async () => {
 
     const planAnnual = await SubscriptionPlan.create({
       name: 'Annual Elite',
-      price: 48000,
+      price: 20000,
       duration: '12 months',
       description: 'Best value for serious meal planning',
       features: ['Everything in Monthly Pro', 'Priority support', 'Annual savings'],

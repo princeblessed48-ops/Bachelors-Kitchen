@@ -129,8 +129,8 @@ const seed = async () => {
     ]);
 
     const plans = await SubscriptionPlan.insertMany([
-      { name: 'Monthly Pro', price: 5000, duration: '1 month', description: 'Full monthly meal plan and subscriber recipe access', features: ['Full timetable', 'Nutrition and serving data', 'Video guides', 'Chef information'], active: true },
-      { name: 'Annual Elite', price: 48000, duration: '12 months', description: 'Full year of Nigerian meal planning at a reduced rate', features: ['Everything in Monthly Pro', 'Priority support', 'Annual savings'], active: true }
+      { name: 'Monthly Pro', price: 2000, duration: '1 month', description: 'Full monthly meal plan and subscriber recipe access', features: ['Full timetable', 'Nutrition and serving data', 'Video guides', 'Chef information'], active: true },
+      { name: 'Annual Elite', price: 20000, duration: '12 months', description: 'Full year of Nigerian meal planning at a reduced rate', features: ['Everything in Monthly Pro', 'Priority support', 'Annual savings'], active: true }
     ]);
 
     const startDate = new Date();

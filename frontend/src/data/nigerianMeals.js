@@ -106,6 +106,6 @@ export const demoTimetable = (() => {
 })();
 
 export const demoPlans = [
-  { id: 'monthly', name: 'Monthly Pro', price: 5000, duration: '1 month', description: 'Access the full monthly plan, nutrition data, and chef content.', features: ['Nutrition insights', 'Video guides', 'Chef details', 'Billing history'], active: true },
-  { id: 'annual', name: 'Annual Elite', price: 48000, duration: '12 months', description: 'Best choice for long-term meal planning and savings.', features: ['Everything in Monthly Pro', 'Priority support', 'Discounted chef meals'], active: true },
+  { id: 'monthly', name: 'Monthly Pro', price: 2000, duration: '1 month', description: 'Access the full monthly plan, nutrition data, and chef content.', features: ['Nutrition insights', 'Video guides', 'Chef details', 'Billing history'], active: true },
+  { id: 'annual', name: 'Annual Elite', price: 20000, duration: '12 months', description: 'Best choice for long-term meal planning and savings.', features: ['Everything in Monthly Pro', 'Priority support', 'Discounted chef meals'], active: true },
 ];
